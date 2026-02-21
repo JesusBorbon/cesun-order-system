@@ -1,0 +1,41 @@
+# --- General / OS ---
+.DS_Store
+.vscode/
+.env
+.env*.local
+*.log
+
+# --- Frontend (React Native / Expo) ---
+# Ignora node_modules en cualquier subcarpeta
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+app-example/
+
+# Carpetas nativas (sin diagonal inicial para que las detecte dentro de cafetec-app)
+ios/
+android/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro & Debug
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# --- Backend (Go) ---
+# Binarios y ejecutables
+backend/bin/
+backend/*.exe
+backend/*.test
+backend/__debug_bin
+backend/.env
+
+# --- TypeScript ---
+*.tsbuildinfo
