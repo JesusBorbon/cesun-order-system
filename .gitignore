@@ -39,3 +39,4 @@ backend/.env
 
 # --- TypeScript ---
 *.tsbuildinfo
+backend/serviceAccount.json
