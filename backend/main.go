@@ -2,60 +2,123 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
+	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
-// Order represents a customer's request in the coffee shop
 type Order struct {
 	ID        string    `json:"id"`
 	UserEmail string    `json:"user_email"`
 	Items     []string  `json:"items"`
 	Total     float64   `json:"total"`
-	Status    string    `json:"status"` // "pending", "preparing", "ready"
+	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+var client *firestore.Client
+
+func enableCORS(w *http.ResponseWriter, r *http.Request) bool {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == "OPTIONS" {
+		(*w).WriteHeader(http.StatusOK)
+		return true
+	}
+	return false
 }
 
 func main() {
 	ctx := context.Background()
-	
-	// Path to your private key file
 	sa := option.WithServiceAccountFile("serviceAccount.json")
 
-	// Initialize the Firebase Admin SDK
 	app, err := firebase.NewApp(ctx, nil, sa)
 	if err != nil {
-		log.Fatalf("Critical Error: Failed to initialize Firebase: %v", err)
+		log.Fatalf("Error inicializando Firebase: %v", err)
 	}
 
-	// Initialize the Firestore Client
-	client, err := app.Firestore(ctx)
+	client, err = app.Firestore(ctx)
 	if err != nil {
-		log.Fatalf("Critical Error: Failed to connect to Firestore: %v", err)
+		log.Fatalf("Error conectando a Firestore: %v", err)
 	}
 	defer client.Close()
 
-	fmt.Println("⏳ Attempting to write a test order...")
+	http.HandleFunc("/create-order", createOrderHandler)
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("Servidor en línea 🚀"))
+	})
+	http.HandleFunc("/show-orders", showOrderHandler)
 
-	// Create a test order instance
-	testOrder := Order{
-		ID:        "order_001",
-		UserEmail: "test@cesun.edu.mx",
-		Items:     []string{"Caramel Macchiato", "Chocolate Muffin"},
-		Total:     12.50,
-		Status:    "pending",
-		CreatedAt: time.Now(),
+	fmt.Println("Servidor escuchando en http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func createOrderHandler(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(&w, r) {
+		return
 	}
 
-	// Write the order to the "orders" collection in Firestore
-	_, err = client.Collection("orders").Doc(testOrder.ID).Set(ctx, testOrder)
+	if r.Method != http.MethodPost {
+		http.Error(w, "Método no válido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var newOrder Order
+	if err := json.NewDecoder(r.Body).Decode(&newOrder); err != nil {
+		http.Error(w, "Error leyendo datos", http.StatusBadRequest)
+		return
+	}
+
+	newOrder.CreatedAt = time.Now()
+	newOrder.Status = "pending"
+
+	_, err := client.Collection("orders").Doc(newOrder.ID).Set(r.Context(), newOrder)
 	if err != nil {
-		log.Fatalf("Failed to add test order: %v", err)
+		http.Error(w, "Error guardando en BD", http.StatusInternalServerError)
+		return
 	}
 
-	fmt.Println("Success! Check your Firebase Console. The test order is live!")
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprintf(w, "Orden %s creada con exito", newOrder.ID)
+}
+
+func showOrderHandler(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(&w, r) {
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		http.Error(w, "Metodo no valido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	iter := client.Collection("orders").Documents(r.Context())
+	defer iter.Stop()
+
+	var orders []Order
+	for {
+		doc, err := iter.Next()
+		if err == iterator.Done {
+			break
+		}
+		if err != nil {
+			http.Error(w, "Error leyendo la base de datos", http.StatusInternalServerError)
+			return
+		}
+		var o Order
+		doc.DataTo(&o)
+		orders = append(orders, o)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(orders)
 }
