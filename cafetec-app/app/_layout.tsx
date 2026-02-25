@@ -28,14 +28,7 @@ export default function RootLayout() {
               options={{ headerShown: false }}
             />
 
-            {/* Modales y otras pantallas secundarias */}
-            <Stack.Screen
-              name="modal"
-              options={{
-                presentation: 'modal',
-                title: 'Order Details'
-              }}
-            />
+
           </Stack>
 
           <StatusBar style="auto" />

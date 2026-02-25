@@ -1,10 +1,9 @@
+import { ThemedText } from '@/components/themed-text';
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { ThemedText } from '@/components/themed-text';
 // 1. Importamos el hook del carrito
 import { useCart } from '@/context/CartContext';
-import { CartProvider } from '@/app/context/CartContext';
 
 interface Product {
   id: string; // Añadimos ID para que el carrito sepa cuál es cuál
@@ -32,7 +31,18 @@ export const ProductCard = ({ product }: { product: Product }) => {
         {/* 3. Conectamos el botón con la función */}
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => addToCart(product)}
+          onPress={() => {
+            // LIMPIEZA DE DATOS:
+            // 1. Quitamos el símbolo '$' y cualquier espacio
+            // 2. Lo convertimos a número decimal
+            const cleanPrice = parseFloat(product.price.replace('$', '').trim()) || 0;
+
+            // 3. Mandamos el producto con el precio ya como NÚMERO
+            addToCart({
+              ...product,
+              price: cleanPrice
+            } as any); // Usamos as any temporalmente para que TS no se queje del cambio string -> number
+          }}
         >
           <Ionicons name="add" size={20} color="#FFF" />
         </TouchableOpacity>
