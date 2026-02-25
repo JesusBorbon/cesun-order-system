@@ -3,28 +3,44 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
 import { CartProvider } from '@/context/CartContext';
+import { LoginUser } from '@/context/loginScreen';
+import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
   anchor: '(tabs)',
 };
-
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
+    // 1. LoginUser es la base. Si user es null, mostrará el formulario de Login/Registro.
+    <LoginUser>
+      {/* 2. CartProvider: El carrito solo existe si hay alguien logueado */}
+      <CartProvider>
+        {/* 3. El tema (Dark/Light) se aplica a la navegación */}
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
 
-    <CartProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          {}
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          {}
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Order Details' }} />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </CartProvider>
+          <Stack>
+            {/* Pantalla principal de la App (Tabs) */}
+            <Stack.Screen
+              name="(tabs)"
+              options={{ headerShown: false }}
+            />
+
+            {/* Modales y otras pantallas secundarias */}
+            <Stack.Screen
+              name="modal"
+              options={{
+                presentation: 'modal',
+                title: 'Order Details'
+              }}
+            />
+          </Stack>
+
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </CartProvider>
+    </LoginUser>
   );
 }

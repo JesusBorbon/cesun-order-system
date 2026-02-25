@@ -10,6 +10,7 @@ import (
 
 	"cloud.google.com/go/firestore"
 	firebase "firebase.google.com/go/v4"
+	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
@@ -21,6 +22,11 @@ type Order struct {
 	Total     float64   `json:"total"`
 	Status    string    `json:"status"`
 	CreatedAt time.Time `json:"created_at"`
+}
+type User struct {
+	UserEmail string  `json:"user_email"`
+	Token     *string `json:"token,omitempty"`
+	Password  string  `json:"password"`
 }
 
 var client *firestore.Client
@@ -57,11 +63,69 @@ func main() {
 		w.Write([]byte("Servidor en línea 🚀"))
 	})
 	http.HandleFunc("/show-orders", showOrderHandler)
+	http.HandleFunc("/login", loginUserHandler)
+	http.HandleFunc("/register", registerUserHandler)
 
 	fmt.Println("Servidor escuchando en http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
+func loginUserHandler(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(&w, r) {
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Metodo no valido", http.StatusMethodNotAllowed)
+		return
+	}
+	ctx := r.Context()
+	var req User
+	json.NewDecoder(r.Body).Decode(&req)
+	docRef := client.Collection("Users").Doc(req.UserEmail)
+	docSnap, err := docRef.Get(ctx)
+	if err != nil {
+		http.Error(w, "Usuario no encontrado", http.StatusNotFound)
+		return
+	}
+	var userData User
+	docSnap.DataTo(&userData)
 
+	if err := bcrypt.CompareHashAndPassword([]byte(userData.Password), []byte(req.Password)); err != nil {
+		http.Error(w, "Credenciales incorrectas", http.StatusUnauthorized)
+		return
+	}
+	token := "token_generado_para_" + req.UserEmail
+	userData.Token = &token
+
+	_, err = docRef.Set(ctx, userData)
+	if err != nil {
+		http.Error(w, "Error actualizando token", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(userData)
+}
+func registerUserHandler(w http.ResponseWriter, r *http.Request) {
+	if enableCORS(&w, r) {
+		return
+	}
+	if r.Method != http.MethodPost {
+		http.Error(w, "Metodo no valido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req User
+	json.NewDecoder(r.Body).Decode(&req)
+
+	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
+
+	_, err := client.Collection("Users").Doc(req.UserEmail).Set(r.Context(), User{UserEmail: req.UserEmail, Password: string(hash)})
+	if err != nil {
+		http.Error(w, "Error guardando en BD", http.StatusInternalServerError)
+		return
+	}
+
+}
 func createOrderHandler(w http.ResponseWriter, r *http.Request) {
 	if enableCORS(&w, r) {
 		return
