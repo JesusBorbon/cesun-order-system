@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons'; // Usamos Ionicons para consistencia con tu index.tsx
+import { Ionicons } from '@expo/vector-icons';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -8,40 +8,56 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
 
-  // Usamos el verde profesional que definiste en tu UI anterior
-  const activeColor = '#5F8575';
+  // Cambiamos el verde por el Azul de Cesun para los iconos activos
+  const activeColor = '#3465D9';
+  const inactiveColor = '#94A3B8'; // Gris azulado suave para lo no seleccionado
 
   return (
     <Tabs
       screenOptions={{
+        // Color de los iconos y texto cuando están seleccionados
         tabBarActiveTintColor: activeColor,
+        // Color cuando no están seleccionados
+        tabBarInactiveTintColor: inactiveColor,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
-          height: 65,
-          paddingBottom: 10,
-          backgroundColor: colorScheme === 'dark' ? '#1A1A1A' : '#FFFFFF',
-        },
+                  height: 110,
+                  paddingBottom: 20,
+                  paddingTop: 10,
+                  backgroundColor: '#FFFFFF',
+                  borderTopWidth: 0,
+                  elevation: 15,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: -4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 10,
+                },
+                tabBarLabelStyle: {
+                  fontSize: 12,
+                  fontWeight: '600',
+                  marginTop: 5,
+                }
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Menu',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="cafe" color={color} />,
+          title: 'Menú',
+          tabBarIcon: ({ color }) => <Ionicons size={26} name="fast-food" color={color} />,
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="search" color={color} />,
+          title: 'Explorar',
+          tabBarIcon: ({ color }) => <Ionicons size={26} name="search" color={color} />,
         }}
       />
       <Tabs.Screen
         name="cart"
         options={{
-          title: 'Cart',
-          tabBarIcon: ({ color }) => <Ionicons size={28} name="cart" color={color} />,
+          title: 'Carrito',
+          tabBarIcon: ({ color }) => <Ionicons size={26} name="cart" color={color} />,
         }}
       />
     </Tabs>

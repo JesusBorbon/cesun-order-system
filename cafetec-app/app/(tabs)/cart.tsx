@@ -1,127 +1,171 @@
-import { ThemedText } from '@/components/themed-text';
-import { useCart } from '@/context/CartContext';
-import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
+import { useCart } from '../../context/CartContext'; // Ajusta la ruta si es necesario
+import { Ionicons } from '@expo/vector-icons';
 
 export default function CartScreen() {
-    const { cart, totalPrice, removeFromCart } = useCart();
+  const { cart, removeFromCart, totalPrice, clearCart } = useCart();
 
-    // Renderizado de cada fila del carrito
-    const renderItem = ({ item }: { item: any }) => {
-        // 1. Aseguramos que el precio sea un número (Esto evita el TypeError)
-        const price = Number(item.price) || 0;
-        const quantity = Number(item.quantity) || 0;
+  const renderItem = ({ item }: { item: any }) => (
+    <View style={styles.cartItem}>
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <Text style={styles.itemDetail}>{item.quantity} x ${item.price.toFixed(2)}</Text>
+      </View>
+      <View style={styles.priceContainer}>
+        <Text style={styles.itemTotal}>${(item.price * item.quantity).toFixed(2)}</Text>
+        <TouchableOpacity onPress={() => removeFromCart(item.id)} style={styles.deleteButton}>
+          <Ionicons name="trash-outline" size={22} color="#C955FF" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
-        // 2. Calculamos el subtotal de esta fila
-        const itemTotal = price * quantity;
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.title}>Mi Pedido</Text>
 
-        return (
-            <View style={styles.cartItem}>
-                <View style={styles.itemInfo}>
-                    <ThemedText style={styles.itemName}>{item.name}</ThemedText>
-                    <ThemedText style={styles.itemDetails}>
-                        {quantity} x ${price.toFixed(2)}
-                    </ThemedText>
-                </View>
-                <View style={styles.rightSection}>
-                    <ThemedText style={styles.itemTotal}>
-                        ${itemTotal.toFixed(2)}
-                    </ThemedText>
-                    <TouchableOpacity
-                        onPress={() => removeFromCart(item.id)}
-                        style={styles.deleteButton}
-                    >
-                        <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-        );
-    };
-
-    return (
-        <View style={styles.container}>
-            <ThemedText type="title" style={styles.header}>Mi Pedido</ThemedText>
-
-            <FlatList
-                data={cart}
-                keyExtractor={(item) => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.listContent}
-                ListEmptyComponent={
-                    <View style={styles.emptyContainer}>
-                        <Ionicons name="cart-outline" size={80} color="#D1D5DB" />
-                        <ThemedText style={styles.emptyText}>Tu carrito está vacío</ThemedText>
-                    </View>
-                }
-            />
-
-            {cart.length > 0 && (
-                <View style={styles.footer}>
-                    <View style={styles.totalRow}>
-                        <ThemedText style={styles.totalLabel}>Total a pagar:</ThemedText>
-                        <ThemedText style={styles.totalAmount}>${totalPrice.toFixed(2)}</ThemedText>
-                    </View>
-
-                    <TouchableOpacity
-                        style={styles.checkoutButton}
-                        onPress={() => console.log("Enviando pedido a Go Backend...", cart)}
-                    >
-                        <ThemedText style={styles.checkoutText}>Confirmar Pedido</ThemedText>
-                    </TouchableOpacity>
-                </View>
-            )}
+      {cart.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>Tu carrito está vacío</Text>
         </View>
-    );
+      ) : (
+        <>
+          <FlatList
+            data={cart}
+            keyExtractor={(item) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.list}
+          />
+
+          <View style={styles.footer}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Total a pagar:</Text>
+              <Text style={styles.totalAmount}>${totalPrice.toFixed(2)}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.confirmButton}
+              activeOpacity={0.8}
+              onPress={() => {
+                /* Aquí irá la lógica para enviar a Go */
+                alert("Pedido confirmado. ¡Atento a la señal del cocinero!");
+              }}
+            >
+              <Text style={styles.confirmButtonText}>Confirmar Pedido</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
+    </SafeAreaView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#F9FAFB', paddingHorizontal: 20, paddingTop: 60 },
-    header: { marginBottom: 20, color: '#1F2937' },
-    listContent: { paddingBottom: 100 },
-    cartItem: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        backgroundColor: '#FFF',
-        padding: 15,
-        borderRadius: 15,
-        marginBottom: 10,
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOpacity: 0.05,
-        shadowRadius: 5,
-    },
-    itemInfo: { flex: 1 },
-    itemName: { fontSize: 16, fontWeight: 'bold' },
-    itemDetails: { color: '#6B7280', fontSize: 14 },
-    rightSection: { alignItems: 'flex-end' },
-    itemTotal: { fontSize: 16, fontWeight: '600', marginBottom: 5 },
-    deleteButton: { padding: 5 },
-    emptyContainer: { alignItems: 'center', marginTop: 100 },
-    emptyText: { color: '#9CA3AF', marginTop: 10, fontSize: 18 },
-    footer: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: '#FFF',
-        padding: 25,
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
-        elevation: 20,
-        shadowColor: '#000',
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-    },
-    totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-    totalLabel: { fontSize: 18, color: '#4B5563' },
-    totalAmount: { fontSize: 24, fontWeight: '800', color: '#111827' },
-    checkoutButton: {
-        backgroundColor: '#5F8575',
-        paddingVertical: 16,
-        borderRadius: 15,
-        alignItems: 'center',
-    },
-    checkoutText: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
+  container: {
+    flex: 1,
+    backgroundColor: '#F8F9FB', // Mismo fondo que HomeScreen
+    paddingHorizontal: 20,
+    paddingTop: 40,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#3465D9', // Azul Cesun
+    marginBottom: 25,
+    textAlign: 'center',
+  },
+  list: {
+    paddingBottom: 20,
+  },
+  cartItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 15,
+    padding: 20,
+    marginBottom: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  itemDetail: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
+  },
+  itemTotal: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#64748B',
+  },
+  deleteButton: {
+    marginTop: 8,
+    padding: 5,
+  },
+  footer: {
+    backgroundColor: '#FFFFFF',
+    padding: 25,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  totalLabel: {
+    fontSize: 18,
+    color: '#64748B',
+  },
+  totalAmount: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1E293B',
+  },
+  confirmButton: {
+    backgroundColor: '#3465D9', // Azul Cesun reemplaza al verde
+    borderRadius: 15,
+    padding: 18,
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#3465D9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#94A3B8',
+  }
 });
